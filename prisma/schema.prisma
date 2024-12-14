@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String      @id @default(cuid())
+  name      String
+  email     String      @unique
+  password  String
+  address   String?
+  role      Role        @default(USER)
+  orders    Order[]
+  ratings   BookRating[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Book {
+  id            String      @id @default(cuid())
+  title         String
+  author        String
+  price         Float
+  image         String
+  description   String
+  stock         Int        @default(0)
+  OrderItem     OrderItem[]
+  ratings       BookRating[]
+  averageRating Float      @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model BookRating {
+  id        String   @id @default(cuid())
+  rating    Int
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  book      Book     @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId])
+}
+
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  orderDate   DateTime  @default(now()) 
+  user        User        @relation(fields: [userId], references: [id])
+  userId      String
+  items       OrderItem[]
+  totalPrice  Float
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  order    Order  @relation(fields: [orderId], references: [id])
+  orderId  String
+  book     Book   @relation(fields: [bookId], references: [id])
+  bookId   String
+  quantity Int
+  price    Float
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
