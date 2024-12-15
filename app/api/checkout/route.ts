@@ -1,17 +1,26 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+    // Only check if user is authenticated, not if they're admin
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Please login to continue" },
+        { status: 401 }
+      );
     }
 
     const { items } = await request.json();
+
+    // Validate cart items
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    }
 
     const lineItems = items.map((item: any) => ({
       price_data: {
@@ -25,11 +34,13 @@ export async function POST(request: Request) {
       quantity: item.quantity,
     }));
 
+    // Create order in database
     const order = await prisma.order.create({
       data: {
         userId: session.user.id,
         orderNumber: `ORD-${Date.now()}`,
         orderDate: new Date(),
+        status: "PENDING", // Add initial status
         totalPrice: items.reduce(
           (total: number, item: any) => total + item.book.price * item.quantity,
           0
