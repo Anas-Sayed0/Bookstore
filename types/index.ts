@@ -7,6 +7,7 @@ export interface Book {
   image: string;
   description: string;
   stock: number;
+  averageRating?: number;
 }
 
 export interface User {
